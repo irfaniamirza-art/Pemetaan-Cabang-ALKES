@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>Pemetaan Cabang Alkes</title>
+
+  <!-- Leaflet -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+
+  <!-- SheetJS -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+    }
+
+    h2 {
+      text-align: center;
+      margin: 10px 0;
+    }
+
+    #map {
+      height: 85vh;
+      width: 100%;
+    }
+
+    .upload-box {
+      text-align: center;
+      margin: 10px;
+    }
+  </style>
+</head>
+<body>
+
+<h2>Pemetaan Cabang Alkes (Upload Excel)</h2>
+
+<div class="upload-box">
+  <input type="file" id="excelFile" accept=".xlsx, .xls">
+</div>
+
+<div id="map"></div>
+
+<!-- Leaflet -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script>
+  // =============================
+  // 1. INISIALISASI PETA
+  // =============================
+  const map = L.map("map").setView([-7.5, 112.5], 8);
+
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    attribution: "© OpenStreetMap"
+  }).addTo(map);
+
+  let markersLayer = L.layerGroup().addTo(map);
+
+  // =============================
+  // 2. BACA FILE EXCEL
+  // =============================
+  document.getElementById("excelFile").addEventListener("change", function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+
+    reader.onload = function(event) {
+      const data = new Uint8Array(event.target.result);
+      const workbook = XLSX.read(data, { type: "array" });
+      const sheet = workbook.Sheets[workbook.SheetNames[0]];
+      const jsonData = XLSX.utils.sheet_to_json(sheet);
+
+      tampilkanPeta(jsonData);
+    };
+
+    reader.readAsArrayBuffer(file);
+  });
+
+  // =============================
+  // 3. TAMPILKAN MARKER
+  // =============================
+  function tampilkanPeta(data) {
+    markersLayer.clearLayers();
+
+    data.forEach(item => {
+      if (!item.latitude || !item.longitude) return;
+
+      const marker = L.marker([item.latitude, item.longitude])
+        .bindPopup(`
+          <b>${item.nama_cabang}</b><br>
+          Persentase: ${item.persentase}%
+        `);
+
+      markersLayer.addLayer(marker);
+    });
+  }
+</script>
+
+</body>
+</html>
