@@ -3,88 +3,67 @@ Aplikasi web pemetaan cabang alkes berbasis Leaflet yang menampilkan data lokasi
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8">
-  <title>Pemetaan Persentase Kabupaten/Kota</title>
+    <meta charset="UTF-8">
+    <title>Peta Jawa Timur</title>
 
-  <!-- Leaflet -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
-  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <!-- Leaflet CSS -->
+    <link
+        rel="stylesheet"
+        href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    />
 
-  <!-- SheetJS -->
-  <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
-
-  <style>
-    body {
-      margin: 0;
-      font-family: Arial, sans-serif;
-    }
-    #map {
-      height: 90vh;
-      width: 100%;
-    }
-    .controls {
-      padding: 10px;
-      background: #f5f5f5;
-    }
-  </style>
+    <style>
+        #map {
+            width: 100%;
+            height: 100vh;
+        }
+    </style>
 </head>
 <body>
 
-<div class="controls">
-  <input type="file" id="upload" accept=".xlsx,.xls">
-  <span>Upload file Excel</span>
-</div>
-
 <div id="map"></div>
 
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<!-- PapaParse (baca CSV dari Excel) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+
 <script>
-  // Inisialisasi peta
-  const map = L.map('map').setView([-6.9, 107.6], 8);
+    // Koordinat tengah Jawa Timur
+    const jatimCenter = [-7.5361, 112.2384];
 
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '© OpenStreetMap'
-  }).addTo(map);
+    // Inisialisasi peta (TANPA ZOOM)
+    const map = L.map('map', {
+        center: jatimCenter,
+        zoom: 8,
+        zoomControl: false,
+        dragging: false,
+        scrollWheelZoom: false,
+        doubleClickZoom: false,
+        boxZoom: false,
+        keyboard: false
+    });
 
-  let markersLayer = L.layerGroup().addTo(map);
+    // Tile layer
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap'
+    }).addTo(map);
 
-  document.getElementById('upload').addEventListener('change', function(e) {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-
-    reader.onload = function(evt) {
-      const data = new Uint8Array(evt.target.result);
-      const workbook = XLSX.read(data, { type: 'array' });
-
-      const sheet = workbook.Sheets[workbook.SheetNames[0]];
-      const rows = XLSX.utils.sheet_to_json(sheet);
-
-      markersLayer.clearLayers();
-
-      rows.forEach(row => {
-        const lat = parseFloat(row.Latitude);
-        const lng = parseFloat(row.Longitude);
-        const persen = row.Persentase;
-        const nama = row["Kabupaten/Kota"];
-
-        if (!isNaN(lat) && !isNaN(lng)) {
-          const marker = L.circleMarker([lat, lng], {
-            radius: 10,
-            color: 'red',
-            fillColor: 'red',
-            fillOpacity: 0.6
-          }).addTo(markersLayer);
-
-          marker.bindPopup(
-            `<b>${nama}</b><br>Persentase: ${persen}%`
-          );
+    // Load data dari CSV (Excel)
+    Papa.parse("data.csv", {
+        download: true,
+        header: true,
+        complete: function(results) {
+            results.data.forEach(row => {
+                if (row.latitude && row.longitude) {
+                    L.marker([row.latitude, row.longitude])
+                        .addTo(map)
+                        .bindPopup(`<b>${row.nama_kab}</b>`);
+                }
+            });
         }
-      });
-    };
-
-    reader.readAsArrayBuffer(file);
-  });
+    });
 </script>
 
 </body>
